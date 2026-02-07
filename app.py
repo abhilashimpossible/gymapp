@@ -621,7 +621,8 @@ with left_col:  # Scope the form to the left column.
         effective_daytype = active_daytype if is_active_session else entry_daytype  # Active or selected.
     #
     # Group the remaining input controls in a form so submissions are atomic.
-        with st.form("workout_entry_form", clear_on_submit=True):  # Create a form block.
+        workout_form = st.form("workout_entry_form", clear_on_submit=True)  # Create a form block.
+        with workout_form:  # Scope inputs to the form.
             entry_exercise = st.selectbox(  # Exercise input.
                 "Exercise Name",  # Label.
                 options=daytype_to_exercises.get(effective_daytype, default_exercises),  # Day-specific options.
@@ -646,11 +647,20 @@ with left_col:  # Scope the form to the left column.
                     placeholder="e.g., 10",  # Placeholder text.
                     key="entry_rep",  # Session key for reset support.
                 )
-            add_col, reset_col = st.columns([1, 1], gap="small")  # Layout for form actions.
-            with add_col:  # Left action column.
-                reset_fields = st.form_submit_button("Reset Fields", type="secondary")  # Reset button.
-            with reset_col:  # Right action column.
-                submitted = st.form_submit_button("Add Workout", type="primary")  # Submit button.
+        def reset_entry_fields():  # Reset only the current entry fields.
+            options = daytype_to_exercises.get(effective_daytype, default_exercises)  # Read options.
+            st.session_state["entry_exercise"] = options[0] if options else ""  # Reset exercise.
+            st.session_state["entry_weight"] = 0.0  # Reset weight.
+            st.session_state["entry_rep"] = 0  # Reset reps.
+        add_col, reset_col = st.columns([1, 1], gap="small")  # Layout for form actions.
+        with add_col:  # Left action column.
+            reset_fields = st.button(  # Reset button outside the form submit.
+                "Reset Fields",  # Reset label.
+                type="secondary",  # Secondary styling.
+                on_click=reset_entry_fields,  # Reset callback.
+            )
+        with reset_col:  # Right action column.
+            submitted = workout_form.form_submit_button("Add Workout", type="primary")  # Submit button.
     #
     # Show a button to finish the active day session.
         workout_rows = st.session_state.get("workout_rows", [])  # Read current entries.
