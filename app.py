@@ -133,15 +133,22 @@ div[data-testid="stVerticalBlock"] > div:has(.auth-card) {
   gap: 12px;
   border-bottom: 2px solid #e6e3de;
 }
-.auth-card-wrap button[role="tab"] {
+.auth-card-wrap button[role="tab"],
+.auth-card-wrap [data-testid="stTabs"] button {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 0 6px !important;
 }
-.auth-card-wrap button[role="tab"][aria-selected="true"] {
+.auth-card-wrap button[role="tab"][aria-selected="true"],
+.auth-card-wrap [data-testid="stTabs"] button[aria-selected="true"] {
   color: #e23c3c !important;
   border-bottom: 2px solid #e23c3c !important;
+}
+.auth-card-wrap [data-testid="stTabs"] div[role="tab"],
+.auth-card-wrap [data-testid="stTabs"] button[role="tab"] {
+  background: transparent !important;
+  border-radius: 0 !important;
 }
 .auth-card h3 {
   margin: 0;
