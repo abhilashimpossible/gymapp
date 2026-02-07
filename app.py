@@ -49,6 +49,13 @@ def status_context(message):  # Render a running status indicator when available
     else:  # Fall back to spinner for Streamlit 1.19.
         with st.spinner(message):
             yield None
+
+
+def safe_rerun():  # Rerun in a version-safe way.
+    if hasattr(st, "rerun"):  # Streamlit 1.25+.
+        st.rerun()
+    else:  # Streamlit 1.19 fallback.
+        st.experimental_rerun()
 #
 # Set the page title and icon in the browser tab.
 st.set_page_config(page_title="Daily Workout Journal", page_icon="🏋️", layout="wide")  # Configure the page.
@@ -316,7 +323,7 @@ if "auth_notice" in st.session_state:  # Check for stored notice.
     st.success(st.session_state.pop("auth_notice"))  # Show and clear notice.
     time.sleep(0.5)  # Keep the notice visible briefly.
     if hasattr(st, "rerun"):  # Use modern Streamlit API when available.
-        st.rerun()  # Rerun to remove the notice.
+        safe_rerun()  # Rerun to remove the notice.
     else:  # Fallback for older versions.
         st.experimental_rerun()  # Rerun to remove the notice.
 #
@@ -370,7 +377,7 @@ def render_account_expander():  # Draw the account UI.
         st.session_state["welcome_shown"] = True  # Mark welcome as shown.
         time.sleep(1)  # Keep the message visible briefly.
         if hasattr(st, "rerun"):  # Use modern Streamlit API when available.
-            st.rerun()  # Rerun to remove the message.
+            safe_rerun()  # Rerun to remove the message.
         else:  # Fallback for older versions.
             st.experimental_rerun()  # Rerun to remove the message.
     user_obj = st.session_state.get("user")  # Read user object.
@@ -747,7 +754,7 @@ with left_col:  # Scope the form to the left column.
                 cookie_manager["last_session_id"] = last_session_id or ""  # Persist session id.
                 queue_cookie_save()  # Commit cookie changes once.
             st.session_state["workout_notice"] = "Workout completed."  # Set completion message.
-            st.rerun()  # Rerun to unlock inputs.
+            safe_rerun()  # Rerun to unlock inputs.
 #
 #
 # Append the entry to the table when the form is submitted.
@@ -865,7 +872,7 @@ if not workout_table.empty and not st.session_state.get("show_history"):  # Skip
                 if cookies_ready:  # Clear completion cookie when available.
                     cookie_manager.pop("workout_completed", None)  # Clear completion cookie.
                     queue_cookie_save()  # Commit cookie changes once.
-                st.rerun()  # Rerun to show the form.
+                safe_rerun()  # Rerun to show the form.
 elif not show_form:  # Handle missing summary after completion.
     st.info("Summary not available yet.")  # Inform the user.
     if st.button("Done", type="primary"):  # Button to return to the home page.
@@ -879,7 +886,7 @@ elif not show_form:  # Handle missing summary after completion.
         if cookies_ready:  # Clear completion cookie when available.
             cookie_manager.pop("workout_completed", None)  # Clear completion cookie.
             queue_cookie_save()  # Commit cookie changes once.
-        st.rerun()  # Rerun to show the form.
+        safe_rerun()  # Rerun to show the form.
 
 # Perform a single cookie save per script run when queued.
 if st.session_state.get("pending_cookie_save"):  # Check for pending saves.
