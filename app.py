@@ -129,6 +129,20 @@ div[data-testid="stVerticalBlock"] > div:has(.auth-card) {
   padding: 12px 14px;
   box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
 }
+.auth-card-wrap div[data-baseweb="tab-list"] {
+  gap: 12px;
+  border-bottom: 2px solid #e6e3de;
+}
+.auth-card-wrap button[role="tab"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 0 6px !important;
+}
+.auth-card-wrap button[role="tab"][aria-selected="true"] {
+  color: #e23c3c !important;
+  border-bottom: 2px solid #e23c3c !important;
+}
 .auth-card h3 {
   margin: 0;
   font-weight: 700;
