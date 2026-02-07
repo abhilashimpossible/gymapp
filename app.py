@@ -174,6 +174,9 @@ div[data-testid="stVerticalBlock"] > div:has(.auth-card) {
 .auth-card-wrap div[data-baseweb="tab-list"] > button[data-baseweb="tab"][aria-selected="false"] * {
   background-color: transparent !important;
 }
+.auth-card-wrap .css-fg4pbf {
+  background: transparent !important;
+}
 .auth-card-wrap [data-baseweb="tab"]::before,
 .auth-card-wrap [data-baseweb="tab"]::after {
   background: transparent !important;
