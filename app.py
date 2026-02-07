@@ -21,16 +21,20 @@ def normalize_date(value):  # Format date values as ISO strings.
 
 
 def render_dataframe(dataframe, height):  # Render a dataframe with version-safe args.
+    safe_df = dataframe.copy()  # Avoid mutating caller.
+    string_cols = safe_df.select_dtypes(include=["string", "object"]).columns  # Text columns.
+    for col in string_cols:  # Coerce text columns to Python-backed strings.
+        safe_df[col] = safe_df[col].astype("string[python]")  # Avoid Arrow LargeUtf8.
     try:  # Newer Streamlit supports hide_index.
         st.dataframe(
-            dataframe,
+            safe_df,
             use_container_width=True,
             hide_index=True,
             height=height,
         )
     except TypeError:  # Older Streamlit rejects hide_index.
         st.dataframe(
-            dataframe,
+            safe_df,
             use_container_width=True,
             height=height,
         )
