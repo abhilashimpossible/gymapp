@@ -162,7 +162,16 @@ div[data-testid="stVerticalBlock"] > div:has(.auth-card) {
   box-shadow: none !important;
   outline: none !important;
 }
+.auth-card-wrap div[data-baseweb="tab-list"] > button[data-baseweb="tab"][aria-selected="false"] {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
 .auth-card-wrap div[data-baseweb="tab-list"] > button[data-baseweb="tab"] * {
+  background-color: transparent !important;
+}
+.auth-card-wrap div[data-baseweb="tab-list"] > button[data-baseweb="tab"][aria-selected="false"] * {
   background-color: transparent !important;
 }
 .auth-card-wrap [data-baseweb="tab"]::before,
