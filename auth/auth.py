@@ -138,6 +138,85 @@ def fetch_history(period=None, from_date=None, to_date=None):  # Read workout hi
     return response.json()  # Return history payload.
 
 # =========================
+# Customization API Section
+# =========================
+# Fetch custom day types for the current user.
+def fetch_custom_daytypes():  # Read custom day types.
+    token = ensure_access_token()  # Resolve the access token.
+    if not token:  # Guard when token is missing.
+        st.error("Please log in again to load day types.")  # Prompt re-login.
+        return []  # Stop when unauthenticated.
+    url = f"{_get_auth_api_url().rstrip('/')}/daytypes"  # Build daytypes endpoint.
+    headers = {"Authorization": f"Bearer {token}"}  # Attach auth header.
+    response = requests.get(url, headers=headers, timeout=15)  # Perform request.
+    if not response.ok:  # Surface errors from the API.
+        try:  # Try to parse JSON error payload.
+            error_detail = response.json().get("detail", "Unable to load day types.")  # Read JSON detail.
+        except ValueError:  # Handle non-JSON responses.
+            error_detail = response.text or "Unable to load day types."  # Fallback to raw text.
+        st.error(error_detail)  # Show error.
+        return []  # Stop on error.
+    return response.json().get("daytypes", [])  # Return day types list.
+
+
+# Create a new custom day type.
+def add_custom_daytype(name: str):  # Save a custom day type.
+    token = ensure_access_token()  # Resolve the access token.
+    if not token:  # Guard when token is missing.
+        st.error("Please log in again to add a day type.")  # Prompt re-login.
+        return None  # Stop when unauthenticated.
+    url = f"{_get_auth_api_url().rstrip('/')}/daytypes"  # Build daytypes endpoint.
+    headers = {"Authorization": f"Bearer {token}"}  # Attach auth header.
+    response = requests.post(url, json={"name": name}, headers=headers, timeout=15)  # Perform request.
+    if not response.ok:  # Surface errors from the API.
+        try:  # Try to parse JSON error payload.
+            error_detail = response.json().get("detail", "Unable to add day type.")  # Read JSON detail.
+        except ValueError:  # Handle non-JSON responses.
+            error_detail = response.text or "Unable to add day type."  # Fallback to raw text.
+        st.error(error_detail)  # Show error.
+        return None  # Stop on error.
+    return response.json()  # Return payload.
+
+
+# Fetch custom exercises for the current user and day type.
+def fetch_custom_exercises(daytype: str):  # Read custom exercises.
+    token = ensure_access_token()  # Resolve the access token.
+    if not token:  # Guard when token is missing.
+        st.error("Please log in again to load exercises.")  # Prompt re-login.
+        return []  # Stop when unauthenticated.
+    url = f"{_get_auth_api_url().rstrip('/')}/exercises"  # Build exercises endpoint.
+    headers = {"Authorization": f"Bearer {token}"}  # Attach auth header.
+    response = requests.get(url, params={"daytype": daytype}, headers=headers, timeout=15)  # Perform request.
+    if not response.ok:  # Surface errors from the API.
+        try:  # Try to parse JSON error payload.
+            error_detail = response.json().get("detail", "Unable to load exercises.")  # Read JSON detail.
+        except ValueError:  # Handle non-JSON responses.
+            error_detail = response.text or "Unable to load exercises."  # Fallback to raw text.
+        st.error(error_detail)  # Show error.
+        return []  # Stop on error.
+    return response.json().get("exercises", [])  # Return exercises list.
+
+
+# Create a new custom exercise.
+def add_custom_exercise(daytype: str, name: str):  # Save a custom exercise.
+    token = ensure_access_token()  # Resolve the access token.
+    if not token:  # Guard when token is missing.
+        st.error("Please log in again to add an exercise.")  # Prompt re-login.
+        return None  # Stop when unauthenticated.
+    url = f"{_get_auth_api_url().rstrip('/')}/exercises"  # Build exercises endpoint.
+    headers = {"Authorization": f"Bearer {token}"}  # Attach auth header.
+    payload = {"daytype": daytype, "name": name}  # Build request payload.
+    response = requests.post(url, json=payload, headers=headers, timeout=15)  # Perform request.
+    if not response.ok:  # Surface errors from the API.
+        try:  # Try to parse JSON error payload.
+            error_detail = response.json().get("detail", "Unable to add exercise.")  # Read JSON detail.
+        except ValueError:  # Handle non-JSON responses.
+            error_detail = response.text or "Unable to add exercise."  # Fallback to raw text.
+        st.error(error_detail)  # Show error.
+        return None  # Stop on error.
+    return response.json()  # Return payload.
+
+# =========================
 # Session Restore Section
 # =========================
 # Restore a session from tokens saved in session state.

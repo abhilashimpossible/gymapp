@@ -634,6 +634,7 @@ if st.session_state["workout_completed"] and not st.session_state.get("workout_r
                 st.session_state["workout_rows"] = restored_rows  # Restore summary rows.
 #
 # Define the mapping from day type to exercise options.
+# Define the mapping from day type to exercise options.
 daytype_to_exercises = {  # Map day types to allowed exercises.
     "arm": [  # Arm day options.
         "prechair arm curl",  # Biceps curl variant.
@@ -669,6 +670,41 @@ default_daytype = "push"  # Default to push day.
 # Define the default exercise list for the default day type.
 default_exercises = daytype_to_exercises[default_daytype]  # Default exercise list.
 #
+# Constants for custom options.
+PREDEFINED_DAYTYPES = ["push", "pull", "leg", "arm"]  # Built-in day types.
+ADD_DAYTYPE_OPTION = "➕ Add custom day type"  # Add day type trigger.
+ADD_EXERCISE_OPTION = "➕ Add custom exercise"  # Add exercise trigger.
+#
+# Normalize text for case-insensitive uniqueness.
+def normalize_label(value):  # Normalize day types and exercise names.
+    return value.strip().lower()  # Trim and lowercase input.
+#
+# Build the list of day type options for the selector.
+def build_daytype_options(custom_daytypes):  # Merge built-in and custom day types.
+    options = []  # Ordered options list.
+    seen = set()  # Track normalized names.
+    for name in PREDEFINED_DAYTYPES + custom_daytypes:  # Combine predefined + custom.
+        key = normalize_label(name)  # Normalize for comparison.
+        if key in seen:  # Skip duplicates.
+            continue
+        options.append(name)  # Preserve display casing.
+        seen.add(key)  # Track normalized key.
+    return options  # Return unique options.
+#
+# Build the list of exercises for a day type.
+def build_exercise_options(daytype_key, custom_exercises):  # Merge built-in and custom exercises.
+    base_exercises = daytype_to_exercises.get(daytype_key, [])  # Built-in list for this day type.
+    extras = custom_exercises.get(daytype_key, [])  # Custom list for this day type.
+    options = []  # Ordered options list.
+    seen = set()  # Track normalized names.
+    for name in base_exercises + extras:  # Combine built-in + custom.
+        key = normalize_label(name)  # Normalize for comparison.
+        if key in seen:  # Skip duplicates.
+            continue
+        options.append(name)  # Preserve display casing.
+        seen.add(key)  # Track normalized key.
+    return options  # Return unique options.
+#
 # Initialize the table storage in session state if missing.
 if "workout_rows" not in st.session_state:  # Check for stored rows.
     st.session_state["workout_rows"] = []  # Start with an empty list.
@@ -683,6 +719,32 @@ if "active_date" not in st.session_state:  # Check for active date.
 if "active_session_id" not in st.session_state:  # Check for active session id.
     st.session_state["active_session_id"] = None  # Start with no active session id.
 #
+# Initialize custom day type/exercise storage in session state.
+if "custom_daytypes" not in st.session_state:  # Track custom day types.
+    st.session_state["custom_daytypes"] = []  # Start with no custom day types.
+if "custom_daytypes_loaded" not in st.session_state:  # Track fetch status.
+    st.session_state["custom_daytypes_loaded"] = False  # Default to not loaded.
+if "custom_exercises" not in st.session_state:  # Track custom exercises per day type.
+    st.session_state["custom_exercises"] = {}  # Map daytype_key -> exercises.
+if "custom_exercises_loaded" not in st.session_state:  # Track per-daytype fetch status.
+    st.session_state["custom_exercises_loaded"] = set()  # Default to empty set.
+if "last_daytype_selection" not in st.session_state:  # Track day type changes.
+    st.session_state["last_daytype_selection"] = None  # Default to no selection.
+if "pending_daytype_selection" not in st.session_state:  # Defer day type selection updates.
+    st.session_state["pending_daytype_selection"] = None  # Default to none.
+if "pending_daytype_input_clear" not in st.session_state:  # Defer clearing day type input.
+    st.session_state["pending_daytype_input_clear"] = False  # Default to no clear.
+if "pending_exercise_selection" not in st.session_state:  # Defer exercise selection updates.
+    st.session_state["pending_exercise_selection"] = None  # Default to none.
+if "pending_exercise_input_clear" not in st.session_state:  # Defer clearing exercise input.
+    st.session_state["pending_exercise_input_clear"] = False  # Default to no clear.
+if "add_workout_clicked" not in st.session_state:  # Track Add Workout clicks across reruns.
+    st.session_state["add_workout_clicked"] = False  # Default to not clicked.
+if "finish_workout_clicked" not in st.session_state:  # Track Finish Workout clicks across reruns.
+    st.session_state["finish_workout_clicked"] = False  # Default to not clicked.
+if "done_clicked" not in st.session_state:  # Track Done button clicks across reruns.
+    st.session_state["done_clicked"] = False  # Default to not clicked.
+#
 # Read the active session values for the current run.
 active_daytype = st.session_state["active_daytype"]  # Current active day type.
 # Read the active session date for the current run.
@@ -693,6 +755,31 @@ active_session_id = st.session_state["active_session_id"]  # Current active sess
 is_active_session = (  # Active flag.
     active_daytype is not None and active_date is not None
 )
+#
+# Reset custom option caches when the authenticated user changes.
+# NOTE: This prevents cross-user leakage when the same browser session logs in as different users.
+current_user_id = None  # Default user id.
+if st.session_state.get("user"):  # Read user id from session user.
+    current_user_id = getattr(st.session_state["user"], "id", None)  # Read attribute id.
+if current_user_id is None and isinstance(st.session_state.get("user"), dict):  # Read dict user id.
+    current_user_id = st.session_state["user"].get("id")  # Read dict id.
+if st.session_state.get("custom_user_id") != current_user_id:  # Clear caches on user change.
+    st.session_state["custom_user_id"] = current_user_id  # Track current user id.
+    st.session_state["custom_daytypes"] = []  # Reset day types.
+    st.session_state["custom_daytypes_loaded"] = False  # Force reload.
+    st.session_state["custom_exercises"] = {}  # Reset exercises.
+    st.session_state["custom_exercises_loaded"] = set()  # Reset loaded flags.
+    st.session_state["last_daytype_selection"] = None  # Reset day type selection.
+    st.session_state["pending_daytype_selection"] = None  # Clear pending day type.
+    st.session_state["pending_daytype_input_clear"] = False  # Clear pending day type input.
+    st.session_state["pending_exercise_selection"] = None  # Clear pending exercise.
+    st.session_state["pending_exercise_input_clear"] = False  # Clear pending exercise input.
+#
+# Load custom day types once per session for authenticated users.
+if not st.session_state.get("custom_daytypes_loaded"):  # Fetch once per session.
+    custom_daytypes = auth.fetch_custom_daytypes()  # Load from API.
+    st.session_state["custom_daytypes"] = custom_daytypes  # Store day types.
+    st.session_state["custom_daytypes_loaded"] = True  # Mark as loaded.
 #
 # =========================
 # Main Two-Column Layout
@@ -710,13 +797,49 @@ with left_col:  # Scope the form to the left column.
     # Keep the day type selector outside the form so it updates exercise options immediately.
         top_row_left, top_row_right = st.columns([1, 1], gap="small")  # Top row layout.
         with top_row_left:  # Daytype column.
+            custom_daytypes = st.session_state.get("custom_daytypes", [])  # Read custom day types.
+            daytype_options = build_daytype_options(custom_daytypes)  # Merge day type options.
+            daytype_options_with_add = daytype_options + [ADD_DAYTYPE_OPTION]  # Add custom trigger.
+            pending_daytype = st.session_state.get("pending_daytype_selection")  # Pending selection.
+            if pending_daytype:  # Apply pending selection before widget renders.
+                st.session_state["entry_daytype"] = pending_daytype  # Update selection safely.
+                st.session_state["pending_daytype_selection"] = None  # Clear pending.
+            if st.session_state.get("pending_daytype_input_clear"):  # Clear input before widget.
+                st.session_state["custom_daytype_input"] = ""  # Clear input safely.
+                st.session_state["pending_daytype_input_clear"] = False  # Reset flag.
+            selected_daytype = active_daytype if is_active_session else st.session_state.get("entry_daytype")  # Current.
+            daytype_index = 0  # Default index.
+            if "entry_daytype" not in st.session_state:  # Only set index when no session value exists.
+                try:  # Resolve the default index.
+                    daytype_index = daytype_options_with_add.index(selected_daytype)  # Match stored selection.
+                except ValueError:  # Fall back to the first option.
+                    daytype_index = 0  # Default index.
             entry_daytype = st.selectbox(  # Day type selector.
                 "Daytype ▼",  # Label.
-                options=["push", "pull", "leg", "arm"],  # Allowed day types.
-                index=(['push', 'pull', 'leg', 'arm'].index(active_daytype) if is_active_session else 0),  # Active or default.
+                options=daytype_options_with_add,  # Allowed day types + custom.
+                index=daytype_index,  # Active or default.
                 disabled=is_active_session,  # Lock selection during active session.
                 key="entry_daytype",  # Session key for reset support.
             )  # End day type selectbox.
+            if entry_daytype == ADD_DAYTYPE_OPTION and not is_active_session:  # Show custom input.
+                custom_daytype_input = st.text_input(  # Custom day type input.
+                    "Custom day type",  # Label.
+                    key="custom_daytype_input",  # Session key.
+                    placeholder="e.g. conditioning",  # Placeholder text.
+                )
+                save_daytype_clicked = st.button(  # Save custom day type.
+                    "Save day type",  # Button label.
+                    type="secondary",  # Secondary styling.
+                )
+                if save_daytype_clicked:  # Persist custom day type.
+                    result = auth.add_custom_daytype(custom_daytype_input)  # Save via API.
+                    if result and result.get("daytype"):  # Update on success.
+                        created_name = result.get("daytype")  # Stored name.
+                        if created_name not in custom_daytypes:  # Avoid duplicates.
+                            st.session_state["custom_daytypes"] = custom_daytypes + [created_name]  # Append.
+                        st.session_state["pending_daytype_selection"] = created_name  # Select on rerun.
+                        st.session_state["pending_daytype_input_clear"] = True  # Clear input on rerun.
+                        safe_rerun()  # Refresh to update options.
         with top_row_right:  # Date column.
             entry_date = st.date_input(  # Date input.
                 "Date",  # Label.
@@ -727,15 +850,61 @@ with left_col:  # Scope the form to the left column.
     #
     # Choose the effective day type for exercise options.
         effective_daytype = active_daytype if is_active_session else entry_daytype  # Active or selected.
+        effective_daytype_key = None  # Default when day type is not selected.
+        if effective_daytype and effective_daytype != ADD_DAYTYPE_OPTION:  # Only normalize real day types.
+            effective_daytype_key = normalize_label(effective_daytype)  # Normalize for lookups.
+        if effective_daytype_key and effective_daytype_key not in st.session_state.get("custom_exercises_loaded", set()):
+            custom_exercises = st.session_state.get("custom_exercises", {})  # Read cache.
+            custom_exercises[effective_daytype_key] = auth.fetch_custom_exercises(effective_daytype_key)  # Fetch.
+            st.session_state["custom_exercises"] = custom_exercises  # Store exercises.
+            st.session_state["custom_exercises_loaded"].add(effective_daytype_key)  # Mark as loaded.
+        if st.session_state.get("last_daytype_selection") != effective_daytype:  # Reset on change.
+            options = build_exercise_options(  # Build options for reset.
+                effective_daytype_key,  # Day type key.
+                st.session_state.get("custom_exercises", {}),  # Custom exercises cache.
+            )
+            st.session_state["entry_exercise"] = options[0] if options else ADD_EXERCISE_OPTION  # Reset exercise.
+            st.session_state["last_daytype_selection"] = effective_daytype  # Track selection.
     #
+    # Exercise selector lives outside the form to allow dynamic inputs.
+        custom_exercises_map = st.session_state.get("custom_exercises", {})  # Read custom exercises.
+        exercise_options = build_exercise_options(  # Build exercise options.
+            effective_daytype_key,  # Day type key.
+            custom_exercises_map,  # Custom exercises per day type.
+        )
+        exercise_options_with_add = exercise_options + [ADD_EXERCISE_OPTION]  # Add custom trigger.
+        pending_exercise = st.session_state.get("pending_exercise_selection")  # Pending selection.
+        if pending_exercise:  # Apply pending selection before widget renders.
+            st.session_state["entry_exercise"] = pending_exercise  # Update selection safely.
+            st.session_state["pending_exercise_selection"] = None  # Clear pending.
+        if st.session_state.get("pending_exercise_input_clear"):  # Clear input before widget.
+            st.session_state["custom_exercise_input"] = ""  # Clear input safely.
+            st.session_state["pending_exercise_input_clear"] = False  # Reset flag.
+        entry_exercise = st.selectbox(  # Exercise input.
+            "Exercise Name",  # Label.
+            options=exercise_options_with_add,  # Day-specific options.
+            disabled=(effective_daytype == ADD_DAYTYPE_OPTION),  # Disable until day type exists.
+            key="entry_exercise",  # Session key for reset support.
+        )  # End exercise selectbox.
+        custom_exercise_input = ""  # Default custom exercise input.
+        save_exercise_clicked = False  # Default save state.
+        if entry_exercise == ADD_EXERCISE_OPTION:  # Show custom exercise input.
+            exercise_input_col, exercise_button_col = st.columns([2.2, 1], gap="small")  # Input row.
+            with exercise_input_col:  # Custom exercise input column.
+                custom_exercise_input = st.text_input(  # Custom exercise name.
+                    "Custom exercise",  # Label.
+                    key="custom_exercise_input",  # Session key.
+                    placeholder="e.g. incline press",  # Placeholder text.
+                )
+            with exercise_button_col:  # Custom exercise button column.
+                save_exercise_clicked = st.button(  # Save exercise action.
+                    "Save Exercise",  # Button label.
+                    type="secondary",  # Secondary styling.
+                    use_container_width=True,  # Match input width.
+                )
     # Group the remaining input controls in a form so submissions are atomic.
         workout_form = st.form("workout_entry_form", clear_on_submit=True)  # Create a form block.
         with workout_form:  # Scope inputs to the form.
-            entry_exercise = st.selectbox(  # Exercise input.
-                "Exercise Name",  # Label.
-                options=daytype_to_exercises.get(effective_daytype, default_exercises),  # Day-specific options.
-                key="entry_exercise",  # Session key for reset support.
-            )  # End exercise selectbox.
             weight_col, rep_col = st.columns([1, 1], gap="small")  # Weight/rep row.
             with weight_col:  # Weight column.
                 entry_weight = st.number_input(  # Weight input.
@@ -754,10 +923,13 @@ with left_col:  # Scope the form to the left column.
                     key="entry_rep",  # Session key for reset support.
                 )
         def reset_entry_fields():  # Reset only the current entry fields.
-            options = daytype_to_exercises.get(effective_daytype, default_exercises)  # Read options.
-            st.session_state["entry_exercise"] = options[0] if options else ""  # Reset exercise.
+            options = build_exercise_options(effective_daytype_key, st.session_state.get("custom_exercises", {}))  # Read.
+            st.session_state["pending_exercise_selection"] = options[0] if options else ADD_EXERCISE_OPTION  # Reset.
+            st.session_state["pending_exercise_input_clear"] = True  # Clear input on rerun.
             st.session_state["entry_weight"] = 0.0  # Reset weight.
             st.session_state["entry_rep"] = 0  # Reset reps.
+        def mark_add_workout_clicked():  # Persist Add Workout clicks; reruns can drop transient button state.
+            st.session_state["add_workout_clicked"] = True  # Remember the click.
         add_col, reset_col = st.columns([1, 1], gap="small")  # Layout for form actions.
         with add_col:  # Left action column.
             reset_fields = st.button(  # Reset button outside the form submit.
@@ -766,18 +938,45 @@ with left_col:  # Scope the form to the left column.
                 on_click=reset_entry_fields,  # Reset callback.
             )
         with reset_col:  # Right action column.
-            submitted = workout_form.form_submit_button("Add Workout", type="primary")  # Submit button.
+            workout_form.form_submit_button(  # Submit button.
+                "Add Workout",  # Label.
+                type="primary",  # Primary styling.
+                on_click=mark_add_workout_clicked,  # Avoid double-click loss on rerun.
+            )
     #
     # Show a button to finish the active day session.
+        def mark_finish_workout_clicked():  # Persist Finish Workout clicks; avoid double-click requirement.
+            st.session_state["finish_workout_clicked"] = True  # Remember the click.
         workout_rows = st.session_state.get("workout_rows", [])  # Read current entries.
         finish_disabled = (len(workout_rows) == 0)  # Disable until at least one entry is logged.
-        finish_clicked = st.button(  # End session button.
+        st.button(  # End session button.
             "Finish Workout",  # Button label.
             disabled=finish_disabled,  # Disable until there is at least one entry.
             type="primary",  # Primary styling.
             use_container_width=True,  # Make the button full width on narrow screens.
+            on_click=mark_finish_workout_clicked,  # Avoid double-click loss on rerun.
         )
-        submitted = submitted and not reset_fields  # Prevent adding when reset is clicked.
+        submitted = st.session_state.get("add_workout_clicked", False)  # Read click state for rerun-safe submit.
+        finish_clicked = st.session_state.get("finish_workout_clicked", False)  # Read click state for rerun-safe finish.
+        submitted = submitted and not reset_fields and not save_exercise_clicked  # Skip when other actions run.
+        if save_exercise_clicked:  # Handle custom exercise creation.
+            if effective_daytype == ADD_DAYTYPE_OPTION:  # Guard invalid day type.
+                st.error("Save the day type before adding exercises.")  # Prompt user action.
+            else:  # Persist the custom exercise.
+                result = auth.add_custom_exercise(effective_daytype, custom_exercise_input)  # Save via API.
+                if result and result.get("exercise"):  # Update on success.
+                    exercise_name = result.get("exercise")  # Stored exercise name.
+                    custom_map = st.session_state.get("custom_exercises", {})  # Read cached map.
+                    custom_list = custom_map.get(effective_daytype_key, [])  # Read existing list.
+                    if exercise_name not in custom_list:  # Avoid duplicates.
+                        custom_map[effective_daytype_key] = custom_list + [exercise_name]  # Append.
+                        st.session_state["custom_exercises"] = custom_map  # Store updated map.
+                    st.session_state["pending_exercise_selection"] = exercise_name  # Select on rerun.
+                    st.session_state["pending_exercise_input_clear"] = True  # Clear input on rerun.
+                    safe_rerun()  # Refresh to update options.
+        if submitted and entry_exercise == ADD_EXERCISE_OPTION:  # Prevent invalid submission.
+            st.error("Select or save an exercise before adding a workout.")  # Warn user.
+            submitted = False  # Stop submission.
         if finish_clicked:  # Handle finish flow on click.
             with status_context("Finishing workout..."):  # Visible status indicator.
                 time.sleep(0.4)  # Brief delay for a smooth UI.
@@ -823,6 +1022,7 @@ with left_col:  # Scope the form to the left column.
                 cookie_manager["last_session_id"] = last_session_id or ""  # Persist session id.
                 queue_cookie_save()  # Commit cookie changes once.
             st.session_state["workout_notice"] = "Workout completed."  # Set completion message.
+            st.session_state["finish_workout_clicked"] = False  # Reset click flag after handling.
             safe_rerun()  # Rerun to unlock inputs.
 #
 #
@@ -909,6 +1109,9 @@ if submitted:  # Only run when the button is pressed.
                     ).execute()  # Execute the insert.
                 except Exception as exc:  # Catch insert errors.
                     st.error(f"Database insert failed: {exc}")  # Show error message.
+    st.session_state["add_workout_clicked"] = False  # Reset click flag after handling.
+else:  # Ensure click flags do not persist across reruns.
+    st.session_state["add_workout_clicked"] = False  # Clear stale click state.
 #
 # Create a DataFrame for display.
 workout_table = pd.DataFrame(st.session_state["workout_rows"])  # Build table.
@@ -930,32 +1133,32 @@ if not workout_table.empty and not st.session_state.get("show_history"):  # Skip
             st.caption("Workout summary")  # Table header caption.
             summary_height = 36 + min(len(workout_table), 12) * 35  # Fit rows without empty space.
             render_dataframe(workout_table, summary_height)  # Render the table.
-            if st.button("Done", type="primary"):  # Button to return to the home page.
-                st.session_state["workout_completed"] = False  # Clear completion state.
-                st.session_state["workout_rows"] = []  # Clear summary rows.
-                st.session_state["active_session_id"] = None  # Clear active session id.
-                st.session_state["active_daytype"] = None  # Clear active day type.
-                st.session_state["active_date"] = None  # Clear active date.
-                st.session_state["show_history"] = False  # Close history panel.
-                st.session_state.pop("history_data", None)  # Clear history data.
-                if cookies_ready:  # Clear completion cookie when available.
-                    cookie_manager.pop("workout_completed", None)  # Clear completion cookie.
-                    queue_cookie_save()  # Commit cookie changes once.
-                safe_rerun()  # Rerun to show the form.
+            st.button(  # Button to return to the home page.
+                "Done",  # Button label.
+                type="primary",  # Primary styling.
+                on_click=lambda: st.session_state.update({"done_clicked": True}),  # Persist click across reruns.
+            )
 elif not show_form:  # Handle missing summary after completion.
     st.info("Summary not available yet.")  # Inform the user.
-    if st.button("Done", type="primary"):  # Button to return to the home page.
-        st.session_state["workout_completed"] = False  # Clear completion state.
-        st.session_state["workout_rows"] = []  # Clear summary rows.
-        st.session_state["active_session_id"] = None  # Clear active session id.
-        st.session_state["active_daytype"] = None  # Clear active day type.
-        st.session_state["active_date"] = None  # Clear active date.
-        st.session_state["show_history"] = False  # Close history panel.
-        st.session_state.pop("history_data", None)  # Clear history data.
-        if cookies_ready:  # Clear completion cookie when available.
-            cookie_manager.pop("workout_completed", None)  # Clear completion cookie.
-            queue_cookie_save()  # Commit cookie changes once.
-        safe_rerun()  # Rerun to show the form.
+    st.button(  # Button to return to the home page.
+        "Done",  # Button label.
+        type="primary",  # Primary styling.
+        on_click=lambda: st.session_state.update({"done_clicked": True}),  # Persist click across reruns.
+    )
+
+if st.session_state.get("done_clicked"):  # Handle Done click after rerun-safe button.
+    st.session_state["workout_completed"] = False  # Clear completion state.
+    st.session_state["workout_rows"] = []  # Clear summary rows.
+    st.session_state["active_session_id"] = None  # Clear active session id.
+    st.session_state["active_daytype"] = None  # Clear active day type.
+    st.session_state["active_date"] = None  # Clear active date.
+    st.session_state["show_history"] = False  # Close history panel.
+    st.session_state.pop("history_data", None)  # Clear history data.
+    if cookies_ready:  # Clear completion cookie when available.
+        cookie_manager.pop("workout_completed", None)  # Clear completion cookie.
+        queue_cookie_save()  # Commit cookie changes once.
+    st.session_state["done_clicked"] = False  # Reset click flag after handling.
+    safe_rerun()  # Rerun to show the form.
 
 # Perform a single cookie save per script run when queued.
 if st.session_state.get("pending_cookie_save"):  # Check for pending saves.
