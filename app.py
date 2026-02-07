@@ -3,7 +3,7 @@ import streamlit as st  # Streamlit primitives for UI.
 # Import pandas to create a table-shaped data structure.
 import pandas as pd  # DataFrame utilities for table data.
 # Import date utilities to set today's date as the default.
-from datetime import date  # Provides today's date.
+from datetime import date, datetime  # Provides today's date and datetime checks.
 # Import Supabase client factory for database access.
 from supabase import create_client, ClientOptions  # Supabase client creation.
 # Import time utilities for brief notice display.
@@ -12,6 +12,28 @@ import time  # Sleep for a short delay.
 from streamlit_cookies_manager import CookieManager  # Cookie storage.
 # Import auth handlers from the auth module.
 from auth import auth  # Auth module with handlers.
+#
+# Normalize dates for consistent DataFrame serialization.
+def normalize_date(value):  # Format date values as ISO strings.
+    if isinstance(value, (date, datetime)):  # Convert date-like values.
+        return value.isoformat()  # Use ISO string for consistency.
+    return value  # Leave other values unchanged.
+
+
+def render_dataframe(dataframe, height):  # Render a dataframe with version-safe args.
+    try:  # Newer Streamlit supports hide_index.
+        st.dataframe(
+            dataframe,
+            use_container_width=True,
+            hide_index=True,
+            height=height,
+        )
+    except TypeError:  # Older Streamlit rejects hide_index.
+        st.dataframe(
+            dataframe,
+            use_container_width=True,
+            height=height,
+        )
 #
 # Set the page title and icon in the browser tab.
 st.set_page_config(page_title="Daily Workout Journal", page_icon="🏋️", layout="wide")  # Configure the page.
@@ -454,12 +476,7 @@ if st.session_state.get("show_history") and st.session_state.get("history_data")
                 [{"Date": row.get("date"), "Session": row.get("count")} for row in sessions_by_day]
             )
             history_height = 36 + min(len(history_table), 10) * 35  # Fit height to rows.
-            st.dataframe(  # Render the styled table.
-                history_table,  # DataFrame.
-                use_container_width=True,  # Fill container width.
-                hide_index=True,  # Hide index column.
-                height=history_height,  # Fit height to rows.
-            )
+            render_dataframe(history_table, history_height)  # Render the table.
 # Remember completion state across refreshes.
 if "workout_completed" not in st.session_state:  # Initialize completion flag.
     if cookies_ready:  # Load from cookie when available.
@@ -516,7 +533,7 @@ if st.session_state["workout_completed"] and not st.session_state.get("workout_r
                 for entry in entries.data or []:  # Iterate through entry rows.
                     restored_rows.append(  # Add a row for display.
                         {
-                            "Date": session.get("date"),  # Session date.
+                            "Date": normalize_date(session.get("date")),  # Session date.
                             "Daytype ▼": session.get("daytype"),  # Session day type.
                             "Exercise Name": entry.get("exercise_name"),  # Exercise name.
                             "Weight (kg)": entry.get("weight"),  # Weight value.
@@ -735,7 +752,7 @@ if submitted:  # Only run when the button is pressed.
     entry_date = active_date if active_date is not None else entry_date  # Lock date.
     st.session_state["workout_rows"].append(  # Add a new row dict.
         {
-            "Date": entry_date,  # Store date.
+            "Date": normalize_date(entry_date),  # Store date.
             "Daytype ▼": entry_daytype,  # Store day type.
             "Exercise Name": entry_exercise,  # Store exercise.
             "Weight (kg)": entry_weight,  # Store weight.
@@ -812,31 +829,16 @@ if not workout_table.empty and not st.session_state.get("show_history"):  # Skip
             st.caption("Recent entries")  # Table header caption.
             recent_rows = workout_table.tail(10)  # Show latest entries by default.
             recent_height = 36 + min(len(recent_rows), 10) * 35  # Fit rows without empty space.
-            st.dataframe(  # Render the compact table.
-                recent_rows,  # Data to display.
-                use_container_width=True,  # Stretch to container width.
-                hide_index=True,  # Hide the index column.
-                height=recent_height,  # Fit height to rows.
-            )  # End dataframe.
+            render_dataframe(recent_rows, recent_height)  # Render the compact table.
             with st.expander("Show all entries"):  # Expand for full history.
                 full_height = 36 + min(len(workout_table), 18) * 35  # Fit rows without empty space.
-                st.dataframe(  # Render the full table.
-                    workout_table,  # Data to display.
-                    use_container_width=True,  # Stretch to container width.
-                    hide_index=True,  # Hide the index column.
-                    height=full_height,  # Fit height to rows.
-                )  # End dataframe.
+                render_dataframe(workout_table, full_height)  # Render the full table.
     else:  # Center the table horizontally when the form is hidden.
         _, center_col, _ = st.columns([0.4, 3.2, 0.4])  # Create centered column layout.
         with center_col:  # Scope the table to the center column.
             st.caption("Workout summary")  # Table header caption.
             summary_height = 36 + min(len(workout_table), 12) * 35  # Fit rows without empty space.
-            st.dataframe(  # Render the table.
-                workout_table,  # Data to display.
-                use_container_width=True,  # Stretch to container width.
-                hide_index=True,  # Hide the index column.
-                height=summary_height,  # Fit height to rows.
-            )  # End dataframe.
+            render_dataframe(workout_table, summary_height)  # Render the table.
             if st.button("Done", type="primary"):  # Button to return to the home page.
                 st.session_state["workout_completed"] = False  # Clear completion state.
                 st.session_state["workout_rows"] = []  # Clear summary rows.
