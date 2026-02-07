@@ -635,7 +635,6 @@ with left_col:  # Scope the form to the left column.
                     min_value=0.0,  # Minimum value.
                     step=1.0,  # Step size.
                     format="%.2f",  # Display format.
-                    placeholder="e.g., 40.0",  # Placeholder text.
                     key="entry_weight",  # Session key for reset support.
                 )
             with rep_col:  # Rep column.
@@ -644,7 +643,6 @@ with left_col:  # Scope the form to the left column.
                     min_value=0,  # Minimum value.
                     step=1,  # Step size.
                     format="%d",  # Display format.
-                    placeholder="e.g., 10",  # Placeholder text.
                     key="entry_rep",  # Session key for reset support.
                 )
         def reset_entry_fields():  # Reset only the current entry fields.
