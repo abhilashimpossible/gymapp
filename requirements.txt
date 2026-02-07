@@ -7,3 +7,4 @@ streamlit-cookies-manager
 supabase
 uvicorn
 email-validator
+altair
