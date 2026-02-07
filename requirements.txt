@@ -1,0 +1,9 @@
+fastapi
+pandas
+pydantic
+requests
+streamlit
+streamlit-cookies-manager
+supabase
+uvicorn
+email-validator
