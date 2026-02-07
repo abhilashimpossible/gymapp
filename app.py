@@ -152,6 +152,15 @@ div[data-testid="stVerticalBlock"] > div:has(.auth-card) {
   background: transparent !important;
   border-radius: 0 !important;
 }
+.auth-card-wrap [data-baseweb="tab"] > div,
+.auth-card-wrap [data-baseweb="tab"] > div > p {
+  background: transparent !important;
+}
+.auth-card-wrap [data-baseweb="tab"]::before,
+.auth-card-wrap [data-baseweb="tab"]::after {
+  background: transparent !important;
+  box-shadow: none !important;
+}
 .auth-card-wrap [data-baseweb="tab-highlight"] {
   background: #e23c3c !important;
 }
