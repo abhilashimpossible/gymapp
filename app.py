@@ -177,6 +177,19 @@ div[data-testid="stVerticalBlock"] > div:has(.auth-card) {
 .auth-card-wrap .css-fg4pbf {
   background: transparent !important;
 }
+div[data-testid="stVerticalBlock"] > div:has(.auth-card) div[data-baseweb="tab-list"],
+div[data-testid="stVerticalBlock"] > div:has(.auth-card) button[data-baseweb="tab"],
+div[data-testid="stVerticalBlock"] > div:has(.auth-card) button[data-baseweb="tab"] * {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+div[data-testid="stVerticalBlock"] > div:has(.auth-card) button[data-baseweb="tab"] {
+  border: none !important;
+  outline: none !important;
+}
+div[data-testid="stVerticalBlock"] > div:has(.auth-card) [data-baseweb="tab-highlight"] {
+  background: #e23c3c !important;
+}
 .auth-card-wrap [data-baseweb="tab"]::before,
 .auth-card-wrap [data-baseweb="tab"]::after {
   background: transparent !important;
