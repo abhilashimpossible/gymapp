@@ -134,7 +134,8 @@ div[data-testid="stVerticalBlock"] > div:has(.auth-card) {
   border-bottom: 2px solid #e6e3de;
 }
 .auth-card-wrap button[role="tab"],
-.auth-card-wrap [data-testid="stTabs"] button {
+.auth-card-wrap [data-testid="stTabs"] button,
+.auth-card-wrap [data-baseweb="tab"] {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -146,9 +147,13 @@ div[data-testid="stVerticalBlock"] > div:has(.auth-card) {
   border-bottom: 2px solid #e23c3c !important;
 }
 .auth-card-wrap [data-testid="stTabs"] div[role="tab"],
-.auth-card-wrap [data-testid="stTabs"] button[role="tab"] {
+.auth-card-wrap [data-testid="stTabs"] button[role="tab"],
+.auth-card-wrap [data-baseweb="tab"] {
   background: transparent !important;
   border-radius: 0 !important;
+}
+.auth-card-wrap [data-baseweb="tab-highlight"] {
+  background: #e23c3c !important;
 }
 .auth-card h3 {
   margin: 0;
