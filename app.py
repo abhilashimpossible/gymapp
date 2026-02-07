@@ -8,6 +8,7 @@ from datetime import date, datetime  # Provides today's date and datetime checks
 from supabase import create_client, ClientOptions  # Supabase client creation.
 # Import time utilities for brief notice display.
 import time  # Sleep for a short delay.
+from contextlib import contextmanager  # Build Streamlit version-safe contexts.
 # Import cookie manager for persistent auth sessions.
 from streamlit_cookies_manager import CookieManager  # Cookie storage.
 # Import auth handlers from the auth module.
@@ -38,6 +39,16 @@ def render_dataframe(dataframe, height):  # Render a dataframe with version-safe
             use_container_width=True,
             height=height,
         )
+#
+# Provide a version-safe status context for older Streamlit releases.
+@contextmanager
+def status_context(message):  # Render a running status indicator when available.
+    if hasattr(st, "status"):  # Streamlit 1.25+ supports status.
+        with st.status(message, state="running") as status:  # Show status with spinner.
+            yield status
+    else:  # Fall back to spinner for Streamlit 1.19.
+        with st.spinner(message):
+            yield None
 #
 # Set the page title and icon in the browser tab.
 st.set_page_config(page_title="Daily Workout Journal", page_icon="🏋️", layout="wide")  # Configure the page.
@@ -692,7 +703,7 @@ with left_col:  # Scope the form to the left column.
         )
         submitted = submitted and not reset_fields  # Prevent adding when reset is clicked.
         if finish_clicked:  # Handle finish flow on click.
-            with st.status("Finishing workout...", state="running"):  # Visible status indicator.
+            with status_context("Finishing workout..."):  # Visible status indicator.
                 time.sleep(0.4)  # Brief delay for a smooth UI.
             last_session_id = st.session_state.get("active_session_id")  # Read session id.
             st.session_state["show_history"] = False  # Close history panel after finishing.
