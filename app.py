@@ -378,6 +378,14 @@ input, textarea, .stTextInput input, .stSelectbox div[data-baseweb="select"] {
   border-radius: 8px !important;
   box-sizing: border-box !important;
 }
+/* Keep selectboxes non-editable: hide caret and use pointer cursor. */
+div[data-testid="stSelectbox"] input {
+  caret-color: transparent !important;
+  cursor: pointer !important;
+}
+div[data-testid="stSelectbox"] {
+  cursor: pointer;
+}
 </style>
 """,
     unsafe_allow_html=True,
