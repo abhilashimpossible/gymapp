@@ -384,10 +384,14 @@ div[data-testid="stSelectbox"] [role="combobox"],
 div[data-testid="stSelectbox"] div[data-baseweb="select"] input {
   caret-color: transparent !important;
   cursor: pointer !important;
+  user-select: none !important;
 }
 div[data-testid="stSelectbox"],
 div[data-testid="stSelectbox"] div[data-baseweb="select"] {
   cursor: pointer !important;
+}
+div[data-testid="stSelectbox"] * {
+  caret-color: transparent !important;
 }
 </style>
 """,
@@ -755,6 +759,10 @@ if "finish_workout_clicked" not in st.session_state:  # Track Finish Workout cli
     st.session_state["finish_workout_clicked"] = False  # Default to not clicked.
 if "done_clicked" not in st.session_state:  # Track Done button clicks across reruns.
     st.session_state["done_clicked"] = False  # Default to not clicked.
+if "entry_weight" not in st.session_state:  # Initialize weight input state.
+    st.session_state["entry_weight"] = 0.0  # Default weight.
+if "entry_rep" not in st.session_state:  # Initialize rep input state.
+    st.session_state["entry_rep"] = 0  # Default reps.
 #
 # Read the active session values for the current run.
 active_daytype = st.session_state["active_daytype"]  # Current active day type.
