@@ -378,6 +378,71 @@ input, textarea, .stTextInput input, .stSelectbox div[data-baseweb="select"] {
   border-radius: 8px !important;
   box-sizing: border-box !important;
 }
+/* Dark mode overrides: improve contrast without affecting light mode. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-1: #14181f;
+    --bg-2: #1b212b;
+    --ink-1: #e7ecf2;
+    --ink-2: #c3ccd7;
+    --accent: #7ccf9a;
+    --card: #1f2530;
+    --border: #2b3340;
+  }
+  .stApp {
+    background: radial-gradient(1200px 600px at 20% -10%, var(--bg-2), var(--bg-1));
+    color: var(--ink-1);
+  }
+  h1, h2, h3, h4, h5, h6, label, .stCaption {
+    color: var(--ink-1) !important;
+  }
+  .subtle-text {
+    color: var(--ink-2) !important;
+  }
+  .auth-card h3 {
+    color: #000000 !important;
+  }
+  div[data-testid="stTextInput"] input,
+  div[data-testid="stNumberInput"] input,
+  div[data-testid="stSelectbox"] div[data-baseweb="select"] input {
+    background: #1b212b !important;
+    color: var(--ink-1) !important;
+    border: 1px solid var(--border) !important;
+  }
+  div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+    background: #1b212b !important;
+    border: 1px solid var(--border) !important;
+  }
+  button[kind="primary"],
+  div.stButton > button[kind="primary"] {
+    background: linear-gradient(180deg, #7ccf9a, #5db885) !important;
+    border: 1px solid #5db885 !important;
+    color: #0b1117 !important;
+  }
+  button[kind="secondary"] {
+    background: #1b212b !important;
+    color: var(--ink-1) !important;
+    border: 1px solid var(--border) !important;
+  }
+  div[data-testid="stDataFrame"] {
+    background: #1b212b !important;
+    border: 1px solid var(--border) !important;
+  }
+  div[data-testid="stDataFrame"] table {
+    color: var(--ink-1) !important;
+  }
+  div[data-testid="stDataFrame"] thead tr {
+    background: #202734 !important;
+  }
+  div[data-testid="stDataFrame"] tbody tr:hover {
+    background: #1f2530 !important;
+  }
+  .stAlert {
+    background: #1b212b !important;
+    color: var(--ink-1) !important;
+    border: 1px solid var(--border) !important;
+  }
+}
 /* Keep selectboxes non-editable: hide caret and use pointer cursor. */
 div[data-testid="stSelectbox"] input,
 div[data-testid="stSelectbox"] [role="combobox"],
@@ -775,11 +840,11 @@ if "entry_rep" not in st.session_state:  # Initialize rep input state.
     st.session_state["entry_rep"] = 0  # Default reps.
 #
 # Read the active session values for the current run.
-active_daytype = st.session_state["active_daytype"]  # Current active day type.
+active_daytype = st.session_state.get("active_daytype")  # Current active day type.
 # Read the active session date for the current run.
-active_date = st.session_state["active_date"]  # Current active date.
+active_date = st.session_state.get("active_date")  # Current active date.
 # Read the active session id for the current run.
-active_session_id = st.session_state["active_session_id"]  # Current active session id.
+active_session_id = st.session_state.get("active_session_id")  # Current active session id.
 # Determine whether the user is in an active day session.
 is_active_session = (  # Active flag.
     active_daytype is not None and active_date is not None
@@ -882,11 +947,13 @@ with left_col:  # Scope the form to the left column.
         effective_daytype_key = None  # Default when day type is not selected.
         if effective_daytype and effective_daytype != ADD_DAYTYPE_OPTION:  # Only normalize real day types.
             effective_daytype_key = normalize_label(effective_daytype)  # Normalize for lookups.
-        if effective_daytype_key and effective_daytype_key not in st.session_state.get("custom_exercises_loaded", set()):
+        custom_loaded = st.session_state.get("custom_exercises_loaded", set())  # Read loaded set safely.
+        if effective_daytype_key and effective_daytype_key not in custom_loaded:
             custom_exercises = st.session_state.get("custom_exercises", {})  # Read cache.
             custom_exercises[effective_daytype_key] = auth.fetch_custom_exercises(effective_daytype_key)  # Fetch.
             st.session_state["custom_exercises"] = custom_exercises  # Store exercises.
-            st.session_state["custom_exercises_loaded"].add(effective_daytype_key)  # Mark as loaded.
+            custom_loaded.add(effective_daytype_key)  # Mark as loaded.
+            st.session_state["custom_exercises_loaded"] = custom_loaded  # Persist loaded set.
         if st.session_state.get("last_daytype_selection") != effective_daytype:  # Reset on change.
             options = build_exercise_options(  # Build options for reset.
                 effective_daytype_key,  # Day type key.
@@ -1143,7 +1210,7 @@ else:  # Ensure click flags do not persist across reruns.
     st.session_state["add_workout_clicked"] = False  # Clear stale click state.
 #
 # Create a DataFrame for display.
-workout_table = pd.DataFrame(st.session_state["workout_rows"])  # Build table.
+workout_table = pd.DataFrame(st.session_state.get("workout_rows", []))  # Build table safely.
 #
 # Show the table, centered when the form is hidden.
 if not workout_table.empty and not st.session_state.get("show_history"):  # Skip table on history view.
