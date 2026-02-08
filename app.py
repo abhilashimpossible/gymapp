@@ -496,7 +496,12 @@ def render_login_signup_ui():  # Draw the auth UI.
                 placeholder="Enter your password",  # Placeholder text.
             )
             if st.button("Login", type="primary"):  # Render login button.
-                auth.handle_login(email, password)  # Execute login.
+                if not email or "@" not in email:  # Basic email validation.
+                    st.error("Enter a valid email address.")  # Prompt for valid email.
+                elif not password:  # Guard empty password.
+                    st.error("Enter your password.")  # Prompt for password.
+                else:
+                    auth.handle_login(email, password)  # Execute login.
         with tabs[1]:  # Signup tab.
             name = st.text_input("Name", key="auth_name_signup", placeholder="Your name")  # Name input field.
             email = st.text_input("Email", key="auth_email_signup", placeholder="you@example.com")  # Email input field.
@@ -507,7 +512,12 @@ def render_login_signup_ui():  # Draw the auth UI.
                 placeholder="Create a password",  # Placeholder text.
             )
             if st.button("Sign Up", type="primary"):  # Render signup button.
-                auth.handle_signup(email, password, name)  # Execute signup.
+                if not email or "@" not in email:  # Basic email validation.
+                    st.error("Enter a valid email address.")  # Prompt for valid email.
+                elif not password:  # Guard empty password.
+                    st.error("Create a password.")  # Prompt for password.
+                else:
+                    auth.handle_signup(email, password, name)  # Execute signup.
         st.markdown("</div>", unsafe_allow_html=True)  # Close auth card wrapper.
 #
 # =========================
