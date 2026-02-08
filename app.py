@@ -379,12 +379,15 @@ input, textarea, .stTextInput input, .stSelectbox div[data-baseweb="select"] {
   box-sizing: border-box !important;
 }
 /* Keep selectboxes non-editable: hide caret and use pointer cursor. */
-div[data-testid="stSelectbox"] input {
+div[data-testid="stSelectbox"] input,
+div[data-testid="stSelectbox"] [role="combobox"],
+div[data-testid="stSelectbox"] div[data-baseweb="select"] input {
   caret-color: transparent !important;
   cursor: pointer !important;
 }
-div[data-testid="stSelectbox"] {
-  cursor: pointer;
+div[data-testid="stSelectbox"],
+div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+  cursor: pointer !important;
 }
 </style>
 """,
