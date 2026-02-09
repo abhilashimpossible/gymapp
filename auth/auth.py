@@ -78,6 +78,10 @@ def _get_auth_api_url():  # Read auth API URL.
 # Call the auth API endpoint.
 def _call_auth_api(path, payload=None):  # Make API requests.
     url = f"{_get_auth_api_url().rstrip('/')}{path}"  # Build the endpoint URL.
+    try:  # Warm the API to avoid cold-start timeouts (Render free tier).
+        requests.get(f"{_get_auth_api_url().rstrip('/')}/health", timeout=3)  # Best-effort wake.
+    except Exception:  # Ignore wake errors.
+        pass  # Proceed with auth request.
     response = requests.post(url, json=payload, timeout=30)  # Perform the request.
     if not response.ok:  # Raise a clear error on failure.
         raise Exception(response.json().get("detail", response.text))  # Surface API error.
